@@ -1,0 +1,51 @@
+To stop redo apply process on the Standby database (to stop MRP):
+ALTER DATABASE RECOVER MANAGED STANDBY DATABASE CANCEL;
+
+To start real-time redo apply:
+ ALTER DATABASE RECOVER MANAGED STANDBY DATABASE USING CURRENT LOGFILE DISCONNECT FROM SESSION;
+ 
+ To start redo apply in background:
+ ALTER DATABASE RECOVER MANAGED STANDBY DATABASE DISCONNECT FROM SESSION;
+ 
+ To check redo apply  and Media recovery service status:
+ SELECT PROCESS,STATUS, THREAD#,SEQUENCE#, BLOCK#, BLOCKS FROM V$MANAGED_STANDBY ;
+ 
+ To gather Data Guard configuration information(standby)
+ 
+ SELECT DATABASE_ROLE,OPEN_MODE, PROTECTION_MODE FROM V$DATABASE 
+
+DATABASE_ROLE OPEN_MODE PROTECTION_MODE
+---------------- -------------------- --------------------
+PHYSICAL STANDBY MOUNTED MAXIMUM PERFORMANCE
+
+
+SELECT RECOVERY_MODE FROM V$ARCHIVE_DEST_STATUS WHERE RECOVERY_MODE!='IDLE';
+
+RECOVERY_MODE
+-----------------------
+MANAGED REAL TIME APPLY
+
+To check status of Data Guard synchronization(standby):
+SELECT NAME, VALUE FROM V$DATAGUARD_STATS;
+
+NAME VALUE
+--------------------- -------------------------------
+transport lag          +00 00:00:00
+apply lag              +00 00:00:00
+apply finish time      +00 00:00:00.000
+estimated startup time 32
+
+To verify that the primary database can be switched to the standby role:
+
+SELECT SWITCHOVER_STATUS FROM V$DATABASE; 
+SWITCHOVER_STATUS
+--------------------
+TO STANDBY
+
+
+To convert the primary database into a physical standby :
+
+ALTER DATABASE COMMIT TO SWITCHOVER TO PHYSICAL STANDBY WITH SESSION SHUTDOWN;
+
+Database altered.
+
