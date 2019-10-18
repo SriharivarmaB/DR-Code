@@ -1,0 +1,242 @@
+	
+Click to add to Favorites		Rman or User Managed Restore/Recovery Fails With Ora-600 [3020] if Datafile resize Operation was Performed. (Doc ID 1302614.1)	To BottomTo Bottom	
+
+In this Document
+	Symptoms
+	Changes
+	Cause
+	Solution
+	References
+
+
+This document is being delivered to you via Oracle Support's Rapid Visibility (RaV) process and therefore has not been subject to an independent technical review.
+Applies to:
+Oracle Database - Enterprise Edition - Version 11.2.0.1.0 and later
+Information in this document applies to any platform.
+***Checked for relevance on 20-July-2015***
+
+Symptoms
+
+1> Restore and recovery from backup fails with ORA-00600: internal error code, arguments: [3020]
+ORA-00600: internal error code, arguments: [3020], [6], [11586], [25177410], [], [], [], [], [], [], [], []
+ORA-10567: Redo is inconsistent with data block (file# 6, block# 11586, file offset is 189825024 bytes)
+ORA-10564: tablespace GPRS_CDR_DATA
+ORA-01110: data file 6: '/cnf/db04/oracle/CNF1P/oradata/CNF1P_gprs_cdr_data_01.dbf'
+ORA-10560: block type 'PAGETABLE SEGMENT HEADER'
+
+  
+2>  The error occurs if a resize operation has been performed on a datafile .The datafile has been resized
+      to  a    size smaller than its original size.
+
+
+
+For example
+
+Wed Mar 03 22:44:12 2011
+CREATE TABLESPACE test DATAFILE '/u01/test_data_01.dbf' SIZE 6G
+.
+
+Wed Mar 9 1:44:12 2011
+alter database datafile '/u01/test_data_01.dbf'  resize 2G
+Completed :-alter database datafile '/u01/test_data_01.dbf' resize 2G
+
+Recovery would fail at a Archive sequence number which contains this resize information
+
+
+
+
+3> This can also happen on a Primary and standby configuration.The standby database would report the  
+     error if operations specified in point 2 are performed on primary
+
+
+4> Call stack :- kcbr_mapply_change <- kcbrapply <- kcbr_apply_pending <- krp_slave_apply
+ 
+Changes
+
+Datafile was resized to a size smaller than the existing size
+
+
+Cause
+
+Datafile was resized to a size smaller than the existing size
+
+This issue is related to Bug
+
+BUG 11689702 - ORA-00600: INTERNAL ERROR CODE, ARGUMENTS: [3020], [8], [883263], [883263],
+
+Fixed Versions: 11.2.0.3, 12.1
+
+Version affected: 11gr2
+
+
+
+Solution
+
+
+>To prevent this issue from happening in future download and apply one off patch    Patch:11689702
+
+> If the error is occuring in Standby database. Take a fresh backup of the affected datafile on which is
+   ORA-00600[3020] is reported  from primary database and restore it to Standby database .
+ 
+
+
+
+===================================================   alert log contents
+
+Sun Dec 27 02:29:59 2015
+MRP0 started with pid=70, OS id=47579136
+MRP0: Background Managed Standby Recovery process started (MISDBA3)
+ started logmerger process
+Sun Dec 27 02:30:04 2015
+Managed Standby Recovery not using Real Time Apply
+Parallel Media Recovery started with 16 slaves
+Sun Dec 27 02:30:33 2015
+Waiting for all non-current ORLs to be archived...
+All non-current ORLs have been archived.
+Sun Dec 27 02:30:33 2015
+Media Recovery Log /archive/oracle/MISDBA3/MISDBA3DR_1_423381_725543639.arc
+Sun Dec 27 02:30:33 2015
+Completed: alter database recover managed standby database disconnect from session
+Sun Dec 27 02:30:36 2015
+Errors in file /Oracle_Logs/oracle/diag/rdbms/misdba3dr/MISDBA3/trace/MISDBA3_pr0g_10223916.trc  (incident=960806):
+ORA-00600: internal error code, arguments: [3020], [1288], [418151], [1124491623], [], [], [], [], [], [], [], []
+ORA-10567: Redo is inconsistent with data block (file# 1288, block# 418151, file offset is unknown bytes)
+ORA-10564: tablespace TBSP_DL_LOAD
+ORA-01110: data file 1288: '+DG_BASIC_COMP/misdba3dr/datafile/tbsp_dl_load.2499.899142045'
+ORA-10561: block type 'TRANSACTION MANAGED INDEX BLOCK', data object# 3808321
+Slave exiting with ORA-600 exception
+Errors in file /Oracle_Logs/oracle/diag/rdbms/misdba3dr/MISDBA3/trace/MISDBA3_pr0g_10223916.trc:
+ORA-00600: internal error code, arguments: [3020], [1288], [418151], [1124491623], [], [], [], [], [], [], [], []
+ORA-10567: Redo is inconsistent with data block (file# 1288, block# 418151, file offset is unknown bytes)
+ORA-10564: tablespace TBSP_DL_LOAD
+ORA-01110: data file 1288: '+DG_BASIC_COMP/misdba3dr/datafile/tbsp_dl_load.2499.899142045'
+ORA-10561: block type 'TRANSACTION MANAGED INDEX BLOCK', data object# 3808321
+Errors in file /Oracle_Logs/oracle/diag/rdbms/misdba3dr/MISDBA3/trace/MISDBA3_mrp0_47579136.trc  (incident=960648):
+ORA-00600: internal error code, arguments: [3020], [1288], [418151], [1124491623], [], [], [], [], [], [], [], []
+ORA-10567: Redo is inconsistent with data block (file# 1288, block# 418151, file offset is unknown bytes)
+ORA-10564: tablespace TBSP_DL_LOAD
+ORA-01110: data file 1288: '+DG_BASIC_COMP/misdba3dr/datafile/tbsp_dl_load.2499.899142045'
+ORA-10561: block type 'TRANSACTION MANAGED INDEX BLOCK', data object# 3808321
+Incident details in: /Oracle_Logs/oracle/diag/rdbms/misdba3dr/MISDBA3/incident/incdir_960648/MISDBA3_mrp0_47579136_i960648.trc
+Sun Dec 27 02:30:39 2015
+Sweep [inc][960806]: completed
+Sweep [inc][960648]: completed
+Recovery Slave PR0G previously exited with exception 600
+MRP0: Background Media Recovery terminated with error 448
+Errors in file /Oracle_Logs/oracle/diag/rdbms/misdba3dr/MISDBA3/trace/MISDBA3_pr00_35127748.trc:
+ORA-00448: normal completion of background process
+Recovery interrupted!
+Sun Dec 27 02:30:39 2015
+Trace dumping is performing id=[cdmp_20151227023039]
+Sun Dec 27 02:30:44 2015
+Recovered data files to a consistent state at change 12016264414728
+Errors in file /Oracle_Logs/oracle/diag/rdbms/misdba3dr/MISDBA3/trace/MISDBA3_pr00_35127748.trc:
+ORA-00448: normal completion of background process
+Sun Dec 27 02:30:46 2015
+Errors in file /Oracle_Logs/oracle/diag/rdbms/misdba3dr/MISDBA3/trace/MISDBA3_mrp0_47579136.trc:
+ORA-00600: internal error code, arguments: [3020], [1288], [418151], [1124491623], [], [], [], [], [], [], [], []
+ORA-10567: Redo is inconsistent with data block (file# 1288, block# 418151, file offset is unknown bytes)
+ORA-10564: tablespace TBSP_DL_LOAD
+ORA-01110: data file 1288: '+DG_BASIC_COMP/misdba3dr/datafile/tbsp_dl_load.2499.899142045'
+ORA-10561: block type 'TRANSACTION MANAGED INDEX BLOCK', data object# 3808321
+MRP0: Background Media Recovery process shutdown (MISDBA3)
+
+
+
+
+
+
+===================================================   ON PRODUCTION :
+
+
+SQL> select name, file#, bytes/1024/1024 from v$datafile where file#=1291;
+NAME                                                                        FILE# BYTES/1024/1024
+---------------------------------------------------------------------- ---------- ---------------
++DG_MISDBA42/misdba3/datafile/tbsp_dl_load.476.899139613                     1288            5568
+
+
+
+MISDBA3:/RESTORE_NEW/oracle> rman target /
+
+Recovery Manager: Release 11.2.0.1.0 - Production on Sun Dec 27 02:39:27 2015
+
+Copyright (c) 1982, 2009, Oracle and/or its affiliates.  All rights reserved.
+
+connected to target database: MISDBA3 (DBID=1474300309)
+
+RMAN>  backup as copy datafile '+DG_MISDBA42/misdba3/datafile/tbsp_dl_load.476.899139613' format '/RESTORE_NEW/oracle/tbsp_dl_load.476.899139613';
+
+
+OR
+
+RMAN> backup as compressed backupset datafile '+DATA01/vigidb7/datafile/cdr_ker_apr18.2567.971643701' format '/NBackup/oracle/DBFILE_BKP/1_cdr_ker_apr18.2567.971643701';
+
+Starting backup at 27-DEC-15
+using target database control file instead of recovery catalog
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=4541 device type=DISK
+channel ORA_DISK_1: starting datafile copy
+input datafile file number=01288 name=+DG_MISDBA42/misdba3/datafile/tbsp_dl_load.476.899139613
+output file name=/RESTORE_NEW/oracle/tbsp_dl_load.476.899139613 tag=TAG20151227T024242 RECID=13 STAMP=899520224
+channel ORA_DISK_1: datafile copy complete, elapsed time: 00:01:05
+Finished backup at 27-DEC-15
+
+Starting Control File and SPFILE Autobackup at 27-DEC-15
+piece handle=/Oracle_home/oracle/11gR2Home/dbs/c-1474300309-20151227-03 comment=NONE
+Finished Control File and SPFILE Autobackup at 27-DEC-15
+
+MISDBA3:/RESTORE_NEW/oracle> scp tbsp_dl_load.476.899139613 ibst4448@172.25.5.192:/archive/oracle
+ibst4448@172.25.5.192's password:
+tbsp_dl_load.476.899139613                                                                                                 100% 5568MB   3.7MB/s   24:50
+
+
+===================================================   ON DR :
+
+
+MISDBA3:/home/oracle>rman target /
+
+Recovery Manager: Release 11.2.0.1.0 - Production on Sun Dec 27 03:13:18 2015
+
+Copyright (c) 1982, 2009, Oracle and/or its affiliates.  All rights reserved.
+
+connected to target database: MISDBA3 (DBID=1474300309, not open)
+
+RMAN> catalog start with '/archive/oracle/tbsp_dl_load.476.899139613';
+
+using target database control file instead of recovery catalog
+searching for all files that match the pattern /archive/oracle/tbsp_dl_load.476.899139613
+
+List of Files Unknown to the Database
+=====================================
+File Name: /archive/oracle/tbsp_dl_load.476.899139613
+
+Do you really want to catalog the above files (enter YES or NO)? yes
+cataloging files...
+cataloging done
+
+List of Cataloged Files
+=======================
+File Name: /archive/oracle/tbsp_dl_load.476.899139613
+
+RMAN> restore datafile 337;
+
+Starting restore at 27-DEC-15
+allocated channel: ORA_DISK_1
+channel ORA_DISK_1: SID=2646 device type=DISK
+
+channel ORA_DISK_1: restoring datafile 01288
+input datafile copy RECID=399 STAMP=899522032 file name=/archive/oracle/tbsp_dl_load.476.899139613
+destination for restore of datafile 01288: +DG_BASIC_COMP/misdba3dr/datafile/tbsp_dl_load.2499.899142045
+channel ORA_DISK_1: copied datafile copy of datafile 01288
+output file name=+DG_BASIC_COMP/misdba3dr/datafile/tbsp_dl_load.2499.899142045 RECID=0 STAMP=0
+Finished restore at 27-DEC-15
+
+
+RMAN> sql 'alter database recover managed standby database disconnect from session';
+
+sql statement: alter database recover managed standby database disconnect from session
+
+
+
+alter database recover managed standby database disconnect from session noparallel -- FOR 11.2.0.1.0
+
